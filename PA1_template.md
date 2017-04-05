@@ -57,7 +57,7 @@ df.missing <- df.missing %>%
 hist(df.missing$steps.na)
 ```
 
-![](PA1_template_files/figure-html/missing values-1.png)<!-- -->
+![](PA1_template_files/figure-html/missing_values-1.png)<!-- -->
 
 The mean total number of steps is **37.3825996**.
 The median total number of steps is **0**.
