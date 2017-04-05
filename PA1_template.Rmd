@@ -4,22 +4,82 @@ output:
   html_document:
     keep_md: true
 ---
-
-
 ## Loading and preprocessing the data
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+
+##download and read csv into 'data'
+temp <- tempfile()
+url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(url, temp)
+df <- read.csv(unz(temp,"activity.csv"), stringsAsFactors = FALSE)
+unlink(temp)
+df.missing <- df
+
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r mean_total_steps}
+hist(df$steps)
+```
 
+The mean total number of steps is **`r mean(df$steps, na.rm = TRUE)`**.
+The median total number of steps is **`r median(df$steps, na.rm = TRUE)`**.
 
 ## What is the average daily activity pattern?
 
+```{r average_pattern}
 
+df$steps[is.na(df$steps)] <- 0
+
+df.ts <- df %>%
+  group_by(interval) %>%
+  summarize(total = mean(steps))
+
+ggplot(df.ts, aes(x = interval, y = total, group = 1)) +
+  geom_line()
+```
+
+The interval with the largest average number of steps is **`r df.ts$interval[df.ts$total == max(df.ts$total)]`**.
 
 ## Imputing missing values
 
+```{r missing values}
+na.count <- df.missing %>%
+  summarize_each(funs(sum(is.na(.))))
+print(na.count) 
 
+##replace NA with mean for that interval
+df.missing <- df.missing %>%
+  group_by(interval) %>%
+  mutate(steps.na = ifelse(is.na(steps), mean(steps, na.rm =TRUE), steps))
+
+hist(df.missing$steps.na)
+```
+
+The mean total number of steps is **`r mean(df.missing$steps.na, na.rm = TRUE)`**.
+The median total number of steps is **`r median(df.missing$steps.na, na.rm = TRUE)`**.
+It doesn't appear that imputing NAs with the mean changes the average steps but did increased the frequency counts as expected.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r patterns}
+##create factor for weekday or weekend
+df.missing$weekend <- as.factor(
+  ifelse(weekdays(as.Date(df.missing$date, "%Y-%m-%d")) %in% c("Saturday", "Sunday"),"weekend","weekday"))
+
+## create plot comparing steps on weekday versus weekend
+df.week <- df.missing %>%
+  group_by(weekend, interval) %>%
+  summarise(total = sum(steps.na))
+
+ggplot(df.week, aes(x = interval, y = total, group = 1)) +
+  geom_line() +
+  facet_wrap(~weekend, ncol = 1)
